@@ -1,0 +1,4 @@
+Crul is an easy to use interface for using curl,
+it is also possible to use JsonRPC over HTPP with this library.
+
+For parsing Json and for dynamic types crul uses the Butterfly library.
