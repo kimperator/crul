@@ -18,10 +18,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 SET(EXTRA_LIBRARIES m) #libm is required for pow and other math functions
 
-OPTION(USE_ICU "Use the ICU Library for Unicode" OFF)
+OPTION(USE_ICU "Use the ICU Library for Unicode" ON)
 OPTION(BUILD_STATIC_LIB "Build the static Butterfly lib" ON)
-OPTION(BUILD_SHARED_LIB "Build the shared Butterfly lib" OFF)
-OPTION(BUILD_UNITTESTS "Build the Unittests (recommented)" OFF)
+OPTION(BUILD_SHARED_LIB "Build the shared Butterfly lib" ON)
+OPTION(BUILD_UNITTESTS "Build the Unittests (recommented)" ON)
 
 #if ICU is used, use icu library and define BUTTERFLY_USE_ICU
 IF(USE_ICU)
@@ -35,12 +35,12 @@ ENDIF(USE_ICU)
 
 #the sources for the library
 SET(ButterflySources list map object string_type)
-INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(BUILD_UNITTESTS)
 	#the sources for the unittests
 	SET(UnittestSources tests/iterator_test tests/json_deserialize_test tests/json_serialize_test tests/list_test tests/map_test tests/primitive_test tests/string_test)	
-	INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/tests")
+	INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/tests")
 	SET(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} check)
 endif(BUILD_UNITTESTS)
 
