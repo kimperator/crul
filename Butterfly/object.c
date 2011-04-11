@@ -229,6 +229,8 @@ void object_free(object *obj) {
 }
 
 object *object_copy(object *obj) {
+    if(obj == NULL)
+	    return NULL;
     switch (obj->type) {
         case OBJECT_BOOL:
         case OBJECT_NONE:

@@ -37,12 +37,18 @@ void testJsonRpcOverHttpPost(crul_browser* b) {
 	object_free(resp);
 }
 
+void test_crul_get(crul_browser* b) {
+	printf("%d\n", crul_browser_download_get(b, "http://google.com/sadfasdf.sdafasdf", "index.html"));
+}
+
 int main(int argc, char* argv[])
 {
 	crul_prepare();
 	crul_browser* b = crul_browser_create();
-	testJsonRpcOverHttpPost(b);
-	testJsonRpcOverHttpGet(b);
+	//testJsonRpcOverHttpPost(b);
+	//testJsonRpcOverHttpGet(b);
+	test_crul_get(b);
+	rename("index.html", "crul_test");
 	crul_browser_free(b);
 	crul_postclean();
 }

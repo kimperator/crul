@@ -49,7 +49,6 @@ typedef struct crul_response {
 //internaly used functions
 
 int crul_encode(char* dst, char* src, unsigned int length);
-static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data);
 
 //global functions
 void crul_prepare();
@@ -64,6 +63,12 @@ crul_response* crul_browser_open_get(crul_browser* b, char* url);
 crul_response* crul_browser_open_post_str(crul_browser* b, char* url, char* post);
 crul_response* crul_browser_open_post_str_raw(crul_browser* b, char* url, char* post, long size);
 crul_response* crul_browser_open_post(crul_browser* b, char* url, object* post);
+
+char crul_browser_download_get(crul_browser* b, char* url, char* filename);
+char crul_browser_download_post(crul_browser* b, char* url, object* post, char* filename);
+char crul_browser_download_post_str(crul_browser* b, char* url, char* post, char* filename);
+char crul_browser_download_post_str_raw(crul_browser* b, char* url, char* post, unsigned int length, char* filename);
+
 void crul_response_free(crul_response* r);
 
 //json-rpc over http(s) methods

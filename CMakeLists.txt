@@ -22,5 +22,5 @@ ADD_DEFINITIONS(-DBUTTERFLY_USE_ASCII)
 add_subdirectory(Butterfly)
 add_subdirectory(src)
 	
-ADD_EXECUTABLE(crul_test test)
-TARGET_LINK_LIBRARIES(crul_test crul)
+#ADD_EXECUTABLE(crul_test test)
+#TARGET_LINK_LIBRARIES(crul_test crul)

@@ -25,6 +25,25 @@
 /* not reserved characters due to rfc 3986 */
 static char crul_urlencode_unreserved[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMOPQRSTUVWXYZ0123456789_.-~";
 
+static size_t crul_callback_memory(void *ptr, size_t size, size_t nmemb, void *data) {
+	size_t realsize = size * nmemb;
+	struct MemoryStruct *mem = (struct MemoryStruct *)data;
+	mem->memory = realloc(mem->memory, mem->size + realsize + 1);
+	if (mem->memory == NULL) {
+		/* out of memory! */ 
+		printf("not enough memory (realloc returned NULL)\n");
+		exit(EXIT_FAILURE);
+	}
+	memcpy(&(mem->memory[mem->size]), ptr, realsize);
+	mem->size += realsize;
+	mem->memory[mem->size] = 0;
+	return realsize;
+}
+
+static size_t crul_callback_file(void* ptr, size_t size, size_t nmemb, FILE* fp) {
+	return fwrite(ptr, size, nmemb, fp);
+}
+
 /* 
  * curl_easy_encode in my router sdk broken and escapes '_' -.-
  *
@@ -111,7 +130,7 @@ void crul_browser_set_url(crul_browser* b, char* url) {
 	b->url = strdup(url);
 }
 
-CURL* prepare_request(crul_browser* b, char* url, char handle_redirect, crul_response* response) {
+CURL* crul_prepare_request(crul_browser* b, char* url, char handle_redirect, crul_response* response, FILE* fp) {
 	CURL *request = curl_easy_init();
 
 	if(url)
@@ -122,9 +141,14 @@ CURL* prepare_request(crul_browser* b, char* url, char handle_redirect, crul_res
 		//sets auto handles redirect
 		curl_easy_setopt(request, CURLOPT_FOLLOWLOCATION, 1);
 
+	if(fp) {
+		/* sets file callback */
+		curl_easy_setopt(request, CURLOPT_WRITEFUNCTION, crul_callback_file);
+		curl_easy_setopt(request, CURLOPT_WRITEDATA, fp);
+	}
 	if(response) {
-		//sets mem callback
-		curl_easy_setopt(request, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+		/*sets mem callback*/
+		curl_easy_setopt(request, CURLOPT_WRITEFUNCTION, crul_callback_memory);
 		/* we pass our 'chunk' to the callback function */
 		curl_easy_setopt(request, CURLOPT_WRITEDATA, &(response->data));
 	}
@@ -143,7 +167,7 @@ CURL* prepare_request(crul_browser* b, char* url, char handle_redirect, crul_res
 crul_response* crul_browser_open_get(crul_browser* b, char* url) {
 	crul_response* ret = response_create();
 	crul_browser_set_url(b, url);
-	CURL* request = prepare_request(b, url, 1, ret);
+	CURL* request = crul_prepare_request(b, url, 1, ret, NULL);
 	ret->success = curl_easy_perform(request);
 	curl_easy_cleanup(request);
 	return ret;
@@ -159,7 +183,7 @@ crul_response* crul_browser_open_post_str(crul_browser* b, char* url, char* post
 crul_response* crul_browser_open_post_str_raw(crul_browser* b, char* url, char* post, long size) {
 	crul_response* ret = response_create();
 	crul_browser_set_url(b, url);
-	CURL* request = prepare_request(b, url, 1, ret);
+	CURL* request = crul_prepare_request(b, url, 1, ret, NULL);
 	if(post) {
 		curl_easy_setopt(request, CURLOPT_POST, 1);
 		curl_easy_setopt(request, CURLOPT_POSTFIELDS, post);
@@ -170,17 +194,14 @@ crul_response* crul_browser_open_post_str_raw(crul_browser* b, char* url, char* 
 	return ret;
 }
 
-
-crul_response* crul_browser_open_post(crul_browser* b, char* url, object* post) {
+char* crul_object_map_to_post(object* post) {
 	if(object_type(post) != OBJECT_MAP) {
 		return NULL;
 	}
-	int i;
-
 	int size = 256;
 	char* data = calloc(size, sizeof(char));
 	int left = size-1;
-	
+	int i;
 	object_iterator* itr = object_iterate(post);
 	while(object_iterator_hasnext(itr))
 	{
@@ -216,9 +237,16 @@ crul_response* crul_browser_open_post(crul_browser* b, char* url, object* post) 
     object_iterator_free(itr);
     if(data && strlen(data) > 0)
 	data[strlen(data)-1] = 0; //remove last '&'
-	crul_response* ret = crul_browser_open_post_str(b, url, data);
-	curl_free(data);
-	return ret;
+    return data;
+}
+
+crul_response* crul_browser_open_post(crul_browser* b, char* url, object* post) {
+    char* data = crul_object_map_to_post(post);
+    crul_response* ret = NULL;
+    if(data)
+	ret = crul_browser_open_post_str(b, url, data);
+    curl_free(data);
+    return ret;
 }
 
 object* crul_browser_json_call(crul_browser* b, char* url, char* method, object* params) {
@@ -302,19 +330,44 @@ void crul_browser_free(crul_browser* b) {
 	b = NULL;
 }
 
-static size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data) {
-	size_t realsize = size * nmemb;
-	struct MemoryStruct *mem = (struct MemoryStruct *)data;
-	mem->memory = realloc(mem->memory, mem->size + realsize + 1);
-	if (mem->memory == NULL) {
-		/* out of memory! */ 
-		printf("not enough memory (realloc returned NULL)\n");
-		exit(EXIT_FAILURE);
-	}
-	memcpy(&(mem->memory[mem->size]), ptr, realsize);
-	mem->size += realsize;
-	mem->memory[mem->size] = 0;
-	return realsize;
+char crul_browser_download_get(crul_browser* b, char* url, char* filename) {
+	char ret;
+	crul_browser_set_url(b, url);
+	FILE* fp = fopen(filename, "wb");
+	CURL* request = crul_prepare_request(b, url, 1, NULL, fp);
+	ret = curl_easy_perform(request);
+	fclose(fp);
+	curl_easy_cleanup(request);
+	return ret == 0;
 }
 
+char crul_browser_download_post(crul_browser* b, char* url, object* post, char* filename) {
+    char* data = crul_object_map_to_post(post);
+    char ret = -1;
+    if(data)
+	ret = crul_browser_download_post_str(b, url, data, filename);
+    curl_free(data);
+    return ret;
 
+}
+
+char crul_browser_download_post_str(crul_browser* b, char* url, char* post, char* filename) {
+	unsigned int length = strlen(post);
+	return crul_browser_download_post_str_raw(b, url, post, length, filename);
+}
+
+char crul_browser_download_post_str_raw(crul_browser* b, char* url, char* post, unsigned int length, char* filename) {
+	char ret;
+	crul_browser_set_url(b, url);
+	FILE* fp = fopen(filename, "wb");
+	CURL* request = crul_prepare_request(b, url, 1, NULL, fp);
+	if(post) {
+		curl_easy_setopt(request, CURLOPT_POST, 1);
+		curl_easy_setopt(request, CURLOPT_POSTFIELDS, post);
+		curl_easy_setopt(request, CURLOPT_POSTFIELDSIZE_LARGE, length); 
+	}
+	ret = curl_easy_perform(request);
+	fclose(fp);
+	curl_easy_cleanup(request);
+	return ret == 0;
+}
