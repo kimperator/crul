@@ -201,7 +201,6 @@ char* crul_object_map_to_post(object* post) {
 	int size = 256;
 	char* data = calloc(size, sizeof(char));
 	int left = size-1;
-	int i;
 	object_iterator* itr = object_iterate(post);
 	while(object_iterator_hasnext(itr))
 	{
