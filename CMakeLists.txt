@@ -16,7 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 2.8)
-project(crul)
+project(crul C)
 #set Butterfly options in cache to ovverride them
 SET(BUILD_STATIC_LIB ON CACHE BOOL "Build the static Butterfly lib") 
 SET(USE_ICU OFF CACHE BOOL "Use the ICU Library for Unicode")
