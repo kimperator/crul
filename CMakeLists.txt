@@ -17,7 +17,11 @@
 
 cmake_minimum_required(VERSION 2.8)
 project(crul)
-
+#set Butterfly options in cache to ovverride them
+SET(BUILD_STATIC_LIB ON CACHE BOOL "Build the static Butterfly lib") 
+SET(USE_ICU OFF CACHE BOOL "Use the ICU Library for Unicode")
+SET(BUILD_SHARED_LIB OFF CACHE BOOL "Build the shared Butterfly lib")
+SET(BUILD_UNITTESTS OFF CACHE BOOL "Build the Unittests (recommented)")
 ADD_DEFINITIONS(-DBUTTERFLY_USE_ASCII)
 add_subdirectory(Butterfly)
 add_subdirectory(src)
